@@ -132,12 +132,11 @@ const dbRef = firebase.database().ref('stok_global');
     }
 
     let globalData = [];
-    dbRef.on('value', (snap) => {
-        document.getElementById('netStatus').innerText = "● Online (Cloud Server)";
-        document.getElementById('netStatus').style.color = "#16a34a";
-        const val = snap.val();
-        globalData = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
-        renderAll();
+     dbRef.limitToLast(100).on('value', (snap) => {
+    document.getElementById('netStatus').innerText = "● Online (Optimized)";
+    const val = snap.val();
+    globalData = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
+    renderAll();
     });
 
     function simpanKeCloud() {
@@ -225,4 +224,5 @@ const dbRef = firebase.database().ref('stok_global');
 </script>
 </body>
 </html>
+
 
