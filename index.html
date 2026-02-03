@@ -110,8 +110,8 @@
     };
     // --------------------------------------------------
 
-    const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+ firebase.initializeApp(firebaseConfig);
+const dbRef = firebase.database().ref('stok_global');
 
     function switchTab(n) {
         document.getElementById('c1').classList.toggle('hidden', n !== 1);
@@ -225,3 +225,4 @@ const analytics = getAnalytics(app);
 </script>
 </body>
 </html>
+
