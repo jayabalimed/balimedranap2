@@ -25,6 +25,7 @@
         .masuk { background: var(--s); }
         .keluar { background: var(--d); }
         .hidden { display: none !important; }
+        .status-online { font-size: 12px; color: #16a34a; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -36,20 +37,21 @@
     </div>
 
     <div style="margin-bottom: -1px;">
-        <button id="t1" class="tab-btn active" onclick="switchTab(1)">Stok & Transaksi</button>
-        <button id="t2" class="tab-btn" onclick="switchTab(2)">Rekap Bulanan</button>
+        <button id="t1" class="tab-btn active" onclick="switchTab(1)">Stok & Input</button>
+        <button id="t2" class="tab-btn" onclick="switchTab(2)">Riwayat Transaksi</button>
+        <button id="t3" class="tab-btn" onclick="switchTab(3)">Rekap Bulanan</button>
     </div>
 
     <div id="c1" class="section" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
         <div style="background:white; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--p);">
             <h4 style="margin:0 0 10px 0">📊 Sisa Stok Saat Ini</h4>
             <table id="stokTable">
-                <thead><tr><th>Nama Barang</th><th>Masuk</th><th>Keluar</th><th>Sisa</th></tr></thead>
+                <thead><tr><th>Nama Barang</th><th>Total Masuk</th><th>Total Keluar</th><th>Sisa</th></tr></thead>
                 <tbody id="stokBody"></tbody>
             </table>
         </div>
 
-        <h4>📝 Input Data Baru</h4>
+        <h4>📝 Input Transaksi Baru</h4>
         <div class="grid">
             <div class="field">
                 <label>Tipe</label>
@@ -60,7 +62,7 @@
             </div>
             <div class="field" id="divM">
                 <label>Barang Baru</label>
-                <input type="text" id="namaM" placeholder="Ketik nama...">
+                <input type="text" id="namaM" placeholder="Ketik nama barang...">
             </div>
             <div class="field hidden" id="divK">
                 <label>Pilih Barang</label>
@@ -70,12 +72,23 @@
                 <label>Jumlah</label>
                 <input type="number" id="qty" placeholder="0">
             </div>
-            <button onclick="simpanKeCloud()">SIMPAN CLOUD</button>
+            <button onclick="simpanKeCloud()">SIMPAN KE CLOUD</button>
         </div>
     </div>
 
     <div id="c2" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
-        <h4>🗓️ Laporan Rekap Bulanan</h4>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h4>📜 Daftar Transaksi Terakhir (Maks. 100)</h4>
+            <button onclick="tutupBuku()" style="background: #4b5563; font-size: 11px; padding: 5px 10px;">🔒 Tutup Buku (Reset Database)</button>
+        </div>
+        <table id="historyTable">
+            <thead><tr><th>Waktu</th><th>Barang</th><th>Tipe</th><th>Qty</th><th>Aksi</th></tr></thead>
+            <tbody id="historyBody"></tbody>
+        </table>
+    </div>
+
+    <div id="c3" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
+        <h4>🗓️ Laporan Bulanan</h4>
         <div class="grid" style="margin-bottom:15px;">
             <div class="field">
                 <label>Pilih Bulan</label>
@@ -84,43 +97,45 @@
             <button onclick="eksporExcel()" style="background:var(--s)">📥 Ekspor Rekap (.csv)</button>
         </div>
         <table id="rekapTable">
-            <thead><tr><th>Nama Barang</th><th>Masuk</th><th>Keluar</th><th>Sisa Bulan Ini</th></tr></thead>
+            <thead><tr><th>Nama Barang</th><th>Masuk</th><th>Keluar</th><th>Sisa Akhir</th></tr></thead>
             <tbody id="rekapBody"></tbody>
         </table>
     </div>
-
-    <h4>📜 Riwayat Semua Transaksi</h4>
-    <table id="historyTable">
-        <thead><tr><th>Waktu</th><th>Barang</th><th>Tipe</th><th>Qty</th><th>Aksi</th></tr></thead>
-        <tbody id="historyBody"></tbody>
-    </table>
 </div>
 
 <script>
-    // --- TEMPELKAN KODE FIREBASE CONFIG ANDA DI SINI ---
+    // --- KONFIGURASI FIREBASE ANDA ---
     const firebaseConfig = {
-  apiKey: "AIzaSyBZXj5bYhzN1jfYO4lY1Tsqps0gRMffWIM",
-  authDomain: "stok-barang-ranap-2.firebaseapp.com",
-  databaseURL: "https://stok-barang-ranap-2-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "stok-barang-ranap-2",
-  storageBucket: "stok-barang-ranap-2.firebasestorage.app",
-  messagingSenderId: "567054436342",
-  appId: "1:567054436342:web:4a8e1c03b7ef154859a9d7",
-  measurementId: "G-VXER1T1E4E"
+        apiKey: "AIzaSyBZXj5bYhzN1jfYO4lY1Tsqps0gRMffWIM",
+        authDomain: "stok-barang-ranap-2.firebaseapp.com",
+        databaseURL: "https://stok-barang-ranap-2-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "stok-barang-ranap-2",
+        storageBucket: "stok-barang-ranap-2.firebasestorage.app",
+        messagingSenderId: "567054436342",
+        appId: "1:567054436342:web:4a8e1c03b7ef154859a9d7",
+        measurementId: "G-VXER1T1E4E"
     };
-    // --------------------------------------------------
 
- firebase.initializeApp(firebaseConfig);
-const dbRef = firebase.database().ref('stok_global');
+    firebase.initializeApp(firebaseConfig);
+    const dbRef = firebase.database().ref('stok_global');
 
+    // SISTEM NAVIGASI TAB
     function switchTab(n) {
-        document.getElementById('c1').classList.toggle('hidden', n !== 1);
-        document.getElementById('c2').classList.toggle('hidden', n !== 2);
-        document.getElementById('t1').classList.toggle('active', n === 1);
-        document.getElementById('t2').classList.toggle('active', n === 2);
-        if(n === 2) {
+        document.getElementById('c1').classList.add('hidden');
+        document.getElementById('c2').classList.add('hidden');
+        document.getElementById('c3').classList.add('hidden');
+        document.getElementById('t1').classList.remove('active');
+        document.getElementById('t2').classList.remove('active');
+        document.getElementById('t3').classList.remove('active');
+
+        document.getElementById('c' + n).classList.remove('hidden');
+        document.getElementById('t' + n).classList.add('active');
+
+        if(n === 3) {
             const now = new Date();
-            document.getElementById('filterBulan').value = now.toISOString().substring(0, 7);
+            if(!document.getElementById('filterBulan').value) {
+                document.getElementById('filterBulan').value = now.toISOString().substring(0, 7);
+            }
             renderRekap();
         }
     }
@@ -131,12 +146,14 @@ const dbRef = firebase.database().ref('stok_global');
         document.getElementById('divK').classList.toggle('hidden', tipe === 'MASUK');
     }
 
+    // LISTENER DATA REAL-TIME (DIBATASI 100 DATA UNTUK HEMAT KUOTA)
     let globalData = [];
-     dbRef.limitToLast(100).on('value', (snap) => {
-    document.getElementById('netStatus').innerText = "● Online (Optimized)";
-    const val = snap.val();
-    globalData = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
-    renderAll();
+    dbRef.limitToLast(100).on('value', (snap) => {
+        document.getElementById('netStatus').innerText = "● Online (Optimized)";
+        document.getElementById('netStatus').style.color = "#16a34a";
+        const val = snap.val();
+        globalData = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
+        renderAll();
     });
 
     function simpanKeCloud() {
@@ -153,6 +170,8 @@ const dbRef = firebase.database().ref('stok_global');
             qty: qty,
             waktu: now.toLocaleString('id-ID'),
             bulan: now.toISOString().substring(0, 7)
+        }).then(() => {
+            alert("Data Berhasil Disimpan!");
         });
 
         document.getElementById('qty').value = '';
@@ -169,8 +188,16 @@ const dbRef = firebase.database().ref('stok_global');
         const dataUrut = [...globalData].reverse();
 
         dataUrut.forEach(i => {
-            hBody.innerHTML += `<tr><td>${i.waktu}</td><td>${i.nama}</td><td><span class="badge ${i.tipe.toLowerCase()}">${i.tipe}</span></td><td>${i.qty}</td><td><button onclick="hapus('${i.id}')" style="background:red; border:none; color:white; padding:3px 6px; border-radius:4px; cursor:pointer;">Hapus</button></td></tr>`;
+            // Isi Riwayat di Tab 2
+            hBody.innerHTML += `<tr>
+                <td>${i.waktu}</td>
+                <td>${i.nama}</td>
+                <td><span class="badge ${i.tipe.toLowerCase()}">${i.tipe}</span></td>
+                <td>${i.qty}</td>
+                <td><button onclick="hapus('${i.id}')" style="background:red; border:none; color:white; padding:3px 6px; border-radius:4px; cursor:pointer;">Hapus</button></td>
+            </tr>`;
             
+            // Hitung Stok untuk Tab 1
             if(!ringkasan[i.nama]) ringkasan[i.nama] = {m:0, k:0};
             if(i.tipe === 'MASUK') ringkasan[i.nama].m += i.qty;
             else ringkasan[i.nama].k += i.qty;
@@ -183,33 +210,29 @@ const dbRef = firebase.database().ref('stok_global');
         }
     }
 
-function renderRekap() {
-    const bln = document.getElementById('filterBulan').value;
-    const rBody = document.getElementById('rekapBody');
-    rBody.innerHTML = '<tr><td colspan="4">Memuat data rekap...</td></tr>';
+    function renderRekap() {
+        const bln = document.getElementById('filterBulan').value;
+        const rBody = document.getElementById('rekapBody');
+        rBody.innerHTML = '<tr><td colspan="4">Memuat data rekap...</td></tr>';
 
-    // Mengambil data sekali saja (once) bukan berlangganan (on)
-    dbRef.orderByChild('bulan').equalTo(bln).once('value', (snap) => {
-        rBody.innerHTML = '';
-        const rekapData = snap.val();
-        
-        if (!rekapData) {
-            rBody.innerHTML = '<tr><td colspan="4">Tidak ada data di bulan ini.</td></tr>';
-            return;
-        }
-
-        const rekap = {};
-        Object.values(rekapData).forEach(i => {
-            if(!rekap[i.nama]) rekap[i.nama] = {m:0, k:0};
-            if(i.tipe === 'MASUK') rekap[i.nama].m += i.qty;
-            else rekap[i.nama].k += i.qty;
+        dbRef.orderByChild('bulan').equalTo(bln).once('value', (snap) => {
+            rBody.innerHTML = '';
+            const rekapData = snap.val();
+            if (!rekapData) {
+                rBody.innerHTML = '<tr><td colspan="4">Tidak ada data di bulan ini.</td></tr>';
+                return;
+            }
+            const rekap = {};
+            Object.values(rekapData).forEach(i => {
+                if(!rekap[i.nama]) rekap[i.nama] = {m:0, k:0};
+                if(i.tipe === 'MASUK') rekap[i.nama].m += i.qty;
+                else rekap[i.nama].k += i.qty;
+            });
+            for(let n in rekap) {
+                rBody.innerHTML += `<tr><td>${n}</td><td style="color:green">+${rekap[n].m}</td><td style="color:red">-${rekap[n].k}</td><td><b>${rekap[n].m - rekap[n].k}</b></td></tr>`;
+            }
         });
-
-        for(let n in rekap) {
-            rBody.innerHTML += `<tr><td>${n}</td><td style="color:green">+${rekap[n].m}</td><td style="color:red">-${rekap[n].k}</td><td><b>${rekap[n].m - rekap[n].k}</b></td></tr>`;
-        }
-    });
-}
+    }
 
     function eksporExcel() {
         const bln = document.getElementById('filterBulan').value;
@@ -217,7 +240,7 @@ function renderRekap() {
         const rows = document.querySelectorAll('#rekapBody tr');
         rows.forEach(r => {
             const cols = r.querySelectorAll('td');
-            csv += `${cols[0].innerText},${cols[1].innerText},${cols[2].innerText},${cols[3].innerText}\n`;
+            if(cols.length > 1) csv += `${cols[0].innerText},${cols[1].innerText},${cols[2].innerText},${cols[3].innerText}\n`;
         });
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -226,12 +249,28 @@ function renderRekap() {
         link.click();
     }
 
+    function tutupBuku() {
+        if(confirm("PERHATIAN: Fitur ini akan mengunduh BACKUP dan MENGHAPUS semua data di Cloud untuk memulai bulan baru. Lanjutkan?")) {
+            let csv = "BACKUP GLOBAL GUDANG\nWaktu,Barang,Tipe,Qty\n";
+            dbRef.once('value', (snap) => {
+                const data = snap.val();
+                if(data) {
+                    Object.values(data).forEach(i => { csv += `${i.waktu},${i.nama},${i.tipe},${i.qty}\n`; });
+                    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `BACKUP_FULL_${new Date().toLocaleDateString()}.csv`;
+                    link.click();
+                    
+                    setTimeout(() => { dbRef.remove(); alert("Database dibersihkan!"); }, 1000);
+                }
+            });
+        }
+    }
+
     function hapus(id) {
-        if(confirm("Hapus data dari Cloud?")) firebase.database().ref('stok_global/' + id).remove();
+        if(confirm("Hapus transaksi ini?")) firebase.database().ref('stok_global/' + id).remove();
     }
 </script>
 </body>
 </html>
-
-
-
