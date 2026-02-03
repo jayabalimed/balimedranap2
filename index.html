@@ -183,25 +183,33 @@ const dbRef = firebase.database().ref('stok_global');
         }
     }
 
-    function renderRekap() {
-        const bln = document.getElementById('filterBulan').value;
-        const rBody = document.getElementById('rekapBody');
+function renderRekap() {
+    const bln = document.getElementById('filterBulan').value;
+    const rBody = document.getElementById('rekapBody');
+    rBody.innerHTML = '<tr><td colspan="4">Memuat data rekap...</td></tr>';
+
+    // Mengambil data sekali saja (once) bukan berlangganan (on)
+    dbRef.orderByChild('bulan').equalTo(bln).once('value', (snap) => {
         rBody.innerHTML = '';
-        if(!bln) return;
+        const rekapData = snap.val();
+        
+        if (!rekapData) {
+            rBody.innerHTML = '<tr><td colspan="4">Tidak ada data di bulan ini.</td></tr>';
+            return;
+        }
 
         const rekap = {};
-        globalData.forEach(i => {
-            if(i.bulan === bln) {
-                if(!rekap[i.nama]) rekap[i.nama] = {m:0, k:0};
-                if(i.tipe === 'MASUK') rekap[i.nama].m += i.qty;
-                else rekap[i.nama].k += i.qty;
-            }
+        Object.values(rekapData).forEach(i => {
+            if(!rekap[i.nama]) rekap[i.nama] = {m:0, k:0};
+            if(i.tipe === 'MASUK') rekap[i.nama].m += i.qty;
+            else rekap[i.nama].k += i.qty;
         });
 
         for(let n in rekap) {
             rBody.innerHTML += `<tr><td>${n}</td><td style="color:green">+${rekap[n].m}</td><td style="color:red">-${rekap[n].k}</td><td><b>${rekap[n].m - rekap[n].k}</b></td></tr>`;
         }
-    }
+    });
+}
 
     function eksporExcel() {
         const bln = document.getElementById('filterBulan').value;
@@ -224,5 +232,6 @@ const dbRef = firebase.database().ref('stok_global');
 </script>
 </body>
 </html>
+
 
 
