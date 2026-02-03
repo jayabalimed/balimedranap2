@@ -1,46 +1,68 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta name="robots" content="noindex, nofollow">
     <meta charset="UTF-8">
-    <title>Stok Gudang Online Real-Time</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Gudang Online Real-Time</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .box { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .section { background: #eef2ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        :root { --p: #2563eb; --s: #16a34a; --d: #dc2626; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .box { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .section { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
         .grid { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-        .field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 150px; }
-        input, select, button { padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
-        button { cursor: pointer; background: #2563eb; color: white; border: none; font-weight: bold; }
-        .btn-danger { background: #dc2626; font-size: 11px; padding: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        .status { color: #16a34a; font-size: 12px; font-weight: bold; margin-bottom: 15px; }
+        .field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+        input, select, button { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+        button { cursor: pointer; background: var(--p); color: white; border: none; font-weight: bold; }
+        .tab-btn { padding: 10px 20px; border: none; background: #cbd5e1; cursor: pointer; border-radius: 8px 8px 0 0; }
+        .tab-btn.active { background: var(--p); color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 14px; }
+        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+        th { background: #f8fafc; }
+        .badge { padding: 3px 8px; border-radius: 10px; font-size: 11px; color: white; font-weight: bold; }
+        .masuk { background: var(--s); }
+        .keluar { background: var(--d); }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>📦 Gudang Online Global</h2>
-    <div id="status" class="status">Menghubungkan ke server...</div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>📦 Management Stok Online</h2>
+        <span id="netStatus" style="font-size:12px; color:orange;">Connecting...</span>
+    </div>
 
-    <div class="section">
+    <div style="margin-bottom: -1px;">
+        <button id="t1" class="tab-btn active" onclick="switchTab(1)">Stok & Transaksi</button>
+        <button id="t2" class="tab-btn" onclick="switchTab(2)">Rekap Bulanan</button>
+    </div>
+
+    <div id="c1" class="section" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
+        <div style="background:white; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--p);">
+            <h4 style="margin:0 0 10px 0">📊 Sisa Stok Saat Ini</h4>
+            <table id="stokTable">
+                <thead><tr><th>Nama Barang</th><th>Masuk</th><th>Keluar</th><th>Sisa</th></tr></thead>
+                <tbody id="stokBody"></tbody>
+            </table>
+        </div>
+
+        <h4>📝 Input Data Baru</h4>
         <div class="grid">
             <div class="field">
                 <label>Tipe</label>
                 <select id="tipe" onchange="toggleInput()">
-                    <option value="MASUK">BARANG MASUK (+)</option>
-                    <option value="KELUAR">BARANG KELUAR (-)</option>
+                    <option value="MASUK">MASUK (+)</option>
+                    <option value="KELUAR">KELUAR (-)</option>
                 </select>
             </div>
-            <div class="field" id="inNama">
-                <label>Nama Barang</label>
+            <div class="field" id="divM">
+                <label>Barang Baru</label>
                 <input type="text" id="namaM" placeholder="Ketik nama...">
             </div>
-            <div class="field" id="selNama" style="display:none">
+            <div class="field hidden" id="divK">
                 <label>Pilih Barang</label>
                 <select id="namaK"></select>
             </div>
@@ -48,26 +70,34 @@
                 <label>Jumlah</label>
                 <input type="number" id="qty" placeholder="0">
             </div>
-            <button onclick="simpan()">SIMPAN KE CLOUD</button>
+            <button onclick="simpanKeCloud()">SIMPAN CLOUD</button>
         </div>
     </div>
 
-    <h3>📊 Sisa Stok (Real-Time)</h3>
-    <table id="tabelStok">
-        <thead><tr><th>Nama Barang</th><th>Masuk</th><th>Keluar</th><th>Sisa</th></tr></thead>
-        <tbody id="stokBody"></tbody>
-    </table>
+    <div id="c2" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
+        <h4>🗓️ Laporan Rekap Bulanan</h4>
+        <div class="grid" style="margin-bottom:15px;">
+            <div class="field">
+                <label>Pilih Bulan</label>
+                <input type="month" id="filterBulan" onchange="renderRekap()">
+            </div>
+            <button onclick="eksporExcel()" style="background:var(--s)">📥 Ekspor Rekap (.csv)</button>
+        </div>
+        <table id="rekapTable">
+            <thead><tr><th>Nama Barang</th><th>Masuk</th><th>Keluar</th><th>Sisa Bulan Ini</th></tr></thead>
+            <tbody id="rekapBody"></tbody>
+        </table>
+    </div>
 
-    <hr>
-    <h3>📜 Riwayat Transaksi</h3>
-    <table id="tabelRiwayat">
+    <h4>📜 Riwayat Semua Transaksi</h4>
+    <table id="historyTable">
         <thead><tr><th>Waktu</th><th>Barang</th><th>Tipe</th><th>Qty</th><th>Aksi</th></tr></thead>
-        <tbody id="riwayatBody"></tbody>
+        <tbody id="historyBody"></tbody>
     </table>
 </div>
 
 <script>
-    // GANTI INI DENGAN KODE FIREBASE MILIK ANDA (Langkah 3 nomor 4)
+    // --- TEMPELKAN KODE FIREBASE CONFIG ANDA DI SINI ---
     const firebaseConfig = {
   apiKey: "AIzaSyBZXj5bYhzN1jfYO4lY1Tsqps0gRMffWIM",
   authDomain: "stok-barang-ranap-2.firebaseapp.com",
@@ -78,79 +108,120 @@
   appId: "1:567054436342:web:4a8e1c03b7ef154859a9d7",
   measurementId: "G-VXER1T1E4E"
     };
+    // --------------------------------------------------
 
-    // Hubungkan ke Firebase
-   const app = initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 
-    // Mendengarkan perubahan data secara otomatis
-    database.on('value', (snapshot) => {
-        document.getElementById('status').innerText = "● Terhubung Secara Real-Time";
-        const rawData = snapshot.val();
-        const dataArray = rawData ? Object.keys(rawData).map(key => ({...rawData[key], id: key})) : [];
-        updateUI(dataArray.reverse());
+    function switchTab(n) {
+        document.getElementById('c1').classList.toggle('hidden', n !== 1);
+        document.getElementById('c2').classList.toggle('hidden', n !== 2);
+        document.getElementById('t1').classList.toggle('active', n === 1);
+        document.getElementById('t2').classList.toggle('active', n === 2);
+        if(n === 2) {
+            const now = new Date();
+            document.getElementById('filterBulan').value = now.toISOString().substring(0, 7);
+            renderRekap();
+        }
+    }
+
+    function toggleInput() {
+        const tipe = document.getElementById('tipe').value;
+        document.getElementById('divM').classList.toggle('hidden', tipe === 'KELUAR');
+        document.getElementById('divK').classList.toggle('hidden', tipe === 'MASUK');
+    }
+
+    let globalData = [];
+    dbRef.on('value', (snap) => {
+        document.getElementById('netStatus').innerText = "● Online (Cloud Server)";
+        document.getElementById('netStatus').style.color = "#16a34a";
+        const val = snap.val();
+        globalData = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
+        renderAll();
     });
 
-    function simpan() {
+    function simpanKeCloud() {
         const tipe = document.getElementById('tipe').value;
         const qty = parseInt(document.getElementById('qty').value);
         let nama = (tipe === 'MASUK') ? document.getElementById('namaM').value.trim().toUpperCase() : document.getElementById('namaK').value;
 
-        if (!nama || !qty) return alert("Data tidak lengkap!");
-
-        // Perintah kirim data ke Cloud
-        database.push({
-            waktu: new Date().toLocaleString('id-ID'),
+        if(!nama || isNaN(qty) || qty <= 0) return alert("Mohon isi data dengan benar!");
+        
+        const now = new Date();
+        dbRef.push({
             nama: nama,
             tipe: tipe,
-            qty: qty
+            qty: qty,
+            waktu: now.toLocaleString('id-ID'),
+            bulan: now.toISOString().substring(0, 7)
         });
 
         document.getElementById('qty').value = '';
         document.getElementById('namaM').value = '';
     }
 
-    function updateUI(data) {
-        const rBody = document.getElementById('riwayatBody');
+    function renderAll() {
         const sBody = document.getElementById('stokBody');
+        const hBody = document.getElementById('historyBody');
         const selK = document.getElementById('namaK');
-        rBody.innerHTML = ''; sBody.innerHTML = ''; selK.innerHTML = '';
+        sBody.innerHTML = ''; hBody.innerHTML = ''; selK.innerHTML = '';
         
-        const stok = {};
+        const ringkasan = {};
+        const dataUrut = [...globalData].reverse();
 
-        data.forEach(item => {
-            // Isi Riwayat
-            rBody.innerHTML += `<tr>
-                <td>${item.waktu}</td>
-                <td>${item.nama}</td>
-                <td>${item.tipe}</td>
-                <td>${item.qty}</td>
-                <td><button class="btn-danger" onclick="hapusData('${item.id}')">Hapus</button></td>
-            </tr>`;
-
-            // Hitung Stok
-            if(!stok[item.nama]) stok[item.nama] = {m:0, k:0};
-            if(item.tipe === 'MASUK') stok[item.nama].m += item.qty;
-            else stok[item.nama].k += item.qty;
+        dataUrut.forEach(i => {
+            hBody.innerHTML += `<tr><td>${i.waktu}</td><td>${i.nama}</td><td><span class="badge ${i.tipe.toLowerCase()}">${i.tipe}</span></td><td>${i.qty}</td><td><button onclick="hapus('${i.id}')" style="background:red; border:none; color:white; padding:3px 6px; border-radius:4px; cursor:pointer;">Hapus</button></td></tr>`;
+            
+            if(!ringkasan[i.nama]) ringkasan[i.nama] = {m:0, k:0};
+            if(i.tipe === 'MASUK') ringkasan[i.nama].m += i.qty;
+            else ringkasan[i.nama].k += i.qty;
         });
 
-        for(let n in stok) {
-            let sisa = stok[n].m - stok[n].k;
-            sBody.innerHTML += `<tr><td>${n}</td><td>${stok[n].m}</td><td>${stok[n].k}</td><td><b>${sisa}</b></td></tr>`;
-            if(sisa > 0) selK.innerHTML += `<option value="${n}">${n}</option>`;
+        for(let n in ringkasan) {
+            let sisa = ringkasan[n].m - ringkasan[n].k;
+            sBody.innerHTML += `<tr><td>${n}</td><td>${ringkasan[n].m}</td><td>${ringkasan[n].k}</td><td><b>${sisa}</b></td></tr>`;
+            if(sisa > 0) selK.innerHTML += `<option value="${n}">${n} (Stok: ${sisa})</option>`;
         }
     }
 
-    function hapusData(id) {
-        if(confirm("Hapus dari cloud?")) firebase.database().ref('stok_gudang/' + id).remove();
+    function renderRekap() {
+        const bln = document.getElementById('filterBulan').value;
+        const rBody = document.getElementById('rekapBody');
+        rBody.innerHTML = '';
+        if(!bln) return;
+
+        const rekap = {};
+        globalData.forEach(i => {
+            if(i.bulan === bln) {
+                if(!rekap[i.nama]) rekap[i.nama] = {m:0, k:0};
+                if(i.tipe === 'MASUK') rekap[i.nama].m += i.qty;
+                else rekap[i.nama].k += i.qty;
+            }
+        });
+
+        for(let n in rekap) {
+            rBody.innerHTML += `<tr><td>${n}</td><td style="color:green">+${rekap[n].m}</td><td style="color:red">-${rekap[n].k}</td><td><b>${rekap[n].m - rekap[n].k}</b></td></tr>`;
+        }
     }
 
-    function toggleInput() {
-        const tipe = document.getElementById('tipe').value;
-        document.getElementById('inNama').style.display = (tipe === 'MASUK') ? 'block' : 'none';
-        document.getElementById('selNama').style.display = (tipe === 'KELUAR') ? 'block' : 'none';
+    function eksporExcel() {
+        const bln = document.getElementById('filterBulan').value;
+        let csv = `Rekap Laporan Bulan: ${bln}\nNama Barang,Masuk,Keluar,Sisa\n`;
+        const rows = document.querySelectorAll('#rekapBody tr');
+        rows.forEach(r => {
+            const cols = r.querySelectorAll('td');
+            csv += `${cols[0].innerText},${cols[1].innerText},${cols[2].innerText},${cols[3].innerText}\n`;
+        });
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Rekap_Gudang_${bln}.csv`;
+        link.click();
+    }
+
+    function hapus(id) {
+        if(confirm("Hapus data dari Cloud?")) firebase.database().ref('stok_global/' + id).remove();
     }
 </script>
 </body>
-
 </html>
