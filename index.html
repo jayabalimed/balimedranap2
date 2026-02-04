@@ -60,12 +60,44 @@
                     <option value="KELUAR">KELUAR (-)</option>
                 </select>
             </div>
+            
             <div class="field" id="divM">
-                <label>Barang Baru</label>
-                <input type="text" id="namaM" placeholder="Ketik nama barang...">
+                <label>Pilih Barang Masuk</label>
+                <select id="namaM">
+                    <option value="" disabled selected>-- Pilih Barang --</option>
+                    <option value="ALCOHOL SWAB">Alcohol Swab</option>
+                    <option value="BETADINE">Betadine</option>
+                    <option value="KERTAS EKG">Kertas EKG</option>
+                    <option value="BACTIGRAS">Bactigras</option>
+                    <option value="HYPAFIX">Hypafix</option>
+                    <option value="JELLY">Jelly</option>
+                    <option value="TISU HALUS">Tisu Halus</option>
+                    <option value="TISU KASAR">Tisu Kasar</option>
+                    <option value="KLIP OBAT">Klip Obat</option>
+                    <option value="HANDSCOON S">Handscoon S</option>
+                    <option value="HANDSCOON M">Handscoon M</option>
+                    <option value="MASKER">Masker</option>
+                    <option value="BUKU POLIO/OPERAN">Buku Polio/Operan</option>
+                    <option value="BUKU TTV">Buku TTV</option>
+                    <option value="BUKU VISITE">Buku Visite</option>
+                    <option value="SPIDOL">Spidol</option>
+                    <option value="BATERAI A2">Baterai A2</option>
+                    <option value="BATERAI A3">Baterai A3</option>
+                    <option value="BATERAI BULAT KECIL">Baterai Bulat Kecil</option>
+                    <option value="BATERAI BULAT BESAR">Baterai Bulat Besar</option>
+                    <option value="KASA GULUNG">Kasa Gulung</option>
+                    <option value="KAIN BATIK">Kain Batik</option>
+                    <option value="PULPEN">Pulpen</option>
+                    <option value="STIKER BARCODE">Stiker Barcode</option>
+                    <option value="TINTA PRINTER MERAH">Tinta Printer Merah</option>
+                    <option value="TINTA PRINTER BIRU">Tinta Printer Biru</option>
+                    <option value="TINTA PRINTER KUNING">Tinta Printer Kuning</option>
+                    <option value="TINTA PRINTER HITAM">Tinta Printer Hitam</option>
+                </select>
             </div>
+
             <div class="field hidden" id="divK">
-                <label>Pilih Barang</label>
+                <label>Pilih Barang Keluar</label>
                 <select id="namaK"></select>
             </div>
             <div class="field">
@@ -159,13 +191,13 @@
     function simpanKeCloud() {
         const tipe = document.getElementById('tipe').value;
         const qty = parseInt(document.getElementById('qty').value);
-        let nama = (tipe === 'MASUK') ? document.getElementById('namaM').value.trim().toUpperCase() : document.getElementById('namaK').value;
+        let nama = (tipe === 'MASUK') ? document.getElementById('namaM').value : document.getElementById('namaK').value;
 
-        if(!nama || isNaN(qty) || qty <= 0) return alert("Mohon isi data dengan benar!");
+        if(!nama || isNaN(qty) || qty <= 0) return alert("Mohon pilih barang dan isi jumlah dengan benar!");
         
         const now = new Date();
         dbRef.push({
-            nama: nama,
+            nama: nama, // Nama sudah otomatis huruf besar dari value dropdown
             tipe: tipe,
             qty: qty,
             waktu: now.toLocaleString('id-ID'),
@@ -175,7 +207,8 @@
         });
 
         document.getElementById('qty').value = '';
-        document.getElementById('namaM').value = '';
+        // Tidak perlu reset namaM agar user bisa input barang yang sama lagi jika mau, 
+        // atau Anda bisa tambahkan: document.getElementById('namaM').value = '';
     }
 
     function renderAll() {
