@@ -93,6 +93,9 @@
                     <option value="TINTA PRINTER BIRU">Tinta Printer Biru</option>
                     <option value="TINTA PRINTER KUNING">Tinta Printer Kuning</option>
                     <option value="TINTA PRINTER HITAM">Tinta Printer Hitam</option>
+                    <option value="STAPLER">Stapler</option>
+                    <option value="STABILO">Stabilo</option>
+                    <option value="TIPE-X">Tipe-X</option>
                 </select>
             </div>
 
@@ -151,7 +154,6 @@
     firebase.initializeApp(firebaseConfig);
     const dbRef = firebase.database().ref('stok_global');
 
-    // SISTEM NAVIGASI TAB
     function switchTab(n) {
         document.getElementById('c1').classList.add('hidden');
         document.getElementById('c2').classList.add('hidden');
@@ -159,7 +161,6 @@
         document.getElementById('t1').classList.remove('active');
         document.getElementById('t2').classList.remove('active');
         document.getElementById('t3').classList.remove('active');
-
         document.getElementById('c' + n).classList.remove('hidden');
         document.getElementById('t' + n).classList.add('active');
 
@@ -178,7 +179,6 @@
         document.getElementById('divK').classList.toggle('hidden', tipe === 'MASUK');
     }
 
-    // LISTENER DATA REAL-TIME (DIBATASI 100 DATA UNTUK HEMAT KUOTA)
     let globalData = [];
     dbRef.limitToLast(100).on('value', (snap) => {
         document.getElementById('netStatus').innerText = "● Online (Optimized)";
@@ -197,7 +197,7 @@
         
         const now = new Date();
         dbRef.push({
-            nama: nama, // Nama sudah otomatis huruf besar dari value dropdown
+            nama: nama,
             tipe: tipe,
             qty: qty,
             waktu: now.toLocaleString('id-ID'),
@@ -207,8 +207,6 @@
         });
 
         document.getElementById('qty').value = '';
-        // Tidak perlu reset namaM agar user bisa input barang yang sama lagi jika mau, 
-        // atau Anda bisa tambahkan: document.getElementById('namaM').value = '';
     }
 
     function renderAll() {
@@ -221,7 +219,6 @@
         const dataUrut = [...globalData].reverse();
 
         dataUrut.forEach(i => {
-            // Isi Riwayat di Tab 2
             hBody.innerHTML += `<tr>
                 <td>${i.waktu}</td>
                 <td>${i.nama}</td>
@@ -230,7 +227,6 @@
                 <td><button onclick="hapus('${i.id}')" style="background:red; border:none; color:white; padding:3px 6px; border-radius:4px; cursor:pointer;">Hapus</button></td>
             </tr>`;
             
-            // Hitung Stok untuk Tab 1
             if(!ringkasan[i.nama]) ringkasan[i.nama] = {m:0, k:0};
             if(i.tipe === 'MASUK') ringkasan[i.nama].m += i.qty;
             else ringkasan[i.nama].k += i.qty;
