@@ -25,7 +25,6 @@
         .masuk { background: var(--s); }
         .keluar { background: var(--d); }
         .hidden { display: none !important; }
-        .status-online { font-size: 12px; color: #16a34a; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -86,7 +85,7 @@
                     <option value="TINTA PRINTER BIRU">Tinta Printer Biru</option>
                     <option value="TINTA PRINTER KUNING">Tinta Printer Kuning</option>
                     <option value="TINTA PRINTER HITAM">Tinta Printer Hitam</option>
-                    <option value="STAPLER">Stapler</option>
+                    <option value="ISI STEPLER">Isi Stepler</option>
                     <option value="STABILO">Stabilo</option>
                     <option value="TIPE-X">Tipe-X</option>
                 </select>
@@ -102,9 +101,8 @@
                 <input type="number" id="qty" placeholder="0">
             </div>
             
-            <button onclick="simpanKeCloud()" style="min-width: 150px;">SIMPAN DATA</button>
+            <button onclick="simpanKeCloud()">SIMPAN DATA</button>
         </div>
-        <p style="font-size: 11px; color: #64748b; margin-top: 15px;">*Data akan langsung tersimpan ke server cloud secara real-time.</p>
     </div>
 
     <div id="c2" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
@@ -117,15 +115,13 @@
 
     <div id="c3" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-            <h4 style="margin:0;">📜 Riwayat Transaksi (100 Terakhir)</h4>
-            <button onclick="tutupBuku()" style="background: #4b5563; font-size: 11px; padding: 5px 10px;">🔒 Reset Database (Tutup Buku)</button>
+            <h4 style="margin:0;">📜 Riwayat Transaksi</h4>
+            <button onclick="tutupBuku()" style="background: #4b5563; font-size: 11px; padding: 5px 10px;">🔒 Tutup Buku</button>
         </div>
-        <div style="max-height: 500px; overflow-y: auto;">
-            <table id="historyTable">
-                <thead><tr><th>Waktu</th><th>Barang</th><th>Tipe</th><th>Qty</th><th>Aksi</th></tr></thead>
-                <tbody id="historyBody"></tbody>
-            </table>
-        </div>
+        <table id="historyTable">
+            <thead><tr><th>Waktu</th><th>Barang</th><th>Tipe</th><th>Qty</th><th>Aksi</th></tr></thead>
+            <tbody id="historyBody"></tbody>
+        </table>
     </div>
 
     <div id="c4" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
@@ -145,7 +141,6 @@
 </div>
 
 <script>
-    // --- KONFIGURASI FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyBZXj5bYhzN1jfYO4lY1Tsqps0gRMffWIM",
         authDomain: "stok-barang-ranap-2.firebaseapp.com",
@@ -160,7 +155,6 @@
     firebase.initializeApp(firebaseConfig);
     const dbRef = firebase.database().ref('stok_global');
 
-    // NAVIGASI TAB
     function switchTab(n) {
         for(let i=1; i<=4; i++) {
             document.getElementById('c'+i).classList.add('hidden');
@@ -168,14 +162,7 @@
         }
         document.getElementById('c' + n).classList.remove('hidden');
         document.getElementById('t' + n).classList.add('active');
-
-        if(n === 4) {
-            const now = new Date();
-            if(!document.getElementById('filterBulan').value) {
-                document.getElementById('filterBulan').value = now.toISOString().substring(0, 7);
-            }
-            renderRekap();
-        }
+        if(n === 4) renderRekap();
     }
 
     function toggleInput() {
@@ -198,7 +185,7 @@
         const qty = parseInt(document.getElementById('qty').value);
         let nama = (tipe === 'MASUK') ? document.getElementById('namaM').value : document.getElementById('namaK').value;
 
-        if(!nama || isNaN(qty) || qty <= 0) return alert("Lengkapi data barang dan jumlah!");
+        if(!nama || isNaN(qty) || qty <= 0) return alert("Lengkapi data!");
         
         const now = new Date();
         dbRef.push({
@@ -208,9 +195,8 @@
             waktu: now.toLocaleString('id-ID'),
             bulan: now.toISOString().substring(0, 7)
         }).then(() => {
-            alert("Berhasil disimpan!");
+            alert("Berhasil!");
             document.getElementById('qty').value = '';
-            if(tipe === 'MASUK') document.getElementById('namaM').value = '';
         });
     }
 
@@ -247,34 +233,27 @@
     function renderRekap() {
         const bln = document.getElementById('filterBulan').value;
         const rBody = document.getElementById('rekapBody');
+        if(!bln) return;
         rBody.innerHTML = '<tr><td colspan="4">Memuat...</td></tr>';
-
         dbRef.orderByChild('bulan').equalTo(bln).once('value', (snap) => {
             rBody.innerHTML = '';
-            const rekapData = snap.val();
-            if (!rekapData) {
-                rBody.innerHTML = '<tr><td colspan="4">Tidak ada data.</td></tr>';
-                return;
-            }
-            const rekap = {};
-            Object.values(rekapData).forEach(i => {
-                if(!rekap[i.nama]) rekap[i.nama] = {m:0, k:0};
-                if(i.tipe === 'MASUK') rekap[i.nama].m += i.qty;
-                else rekap[i.nama].k += i.qty;
+            const data = snap.val();
+            if(!data) { rBody.innerHTML = '<tr><td colspan="4">No Data</td></tr>'; return; }
+            const r = {};
+            Object.values(data).forEach(i => {
+                if(!r[i.nama]) r[i.nama] = {m:0, k:0};
+                if(i.tipe === 'MASUK') r[i.nama].m += i.qty; else r[i.nama].k += i.qty;
             });
-            for(let n in rekap) {
-                rBody.innerHTML += `<tr><td>${n}</td><td style="color:green">+${rekap[n].m}</td><td style="color:red">-${rekap[n].k}</td><td><b>${rekap[n].m - rekap[n].k}</b></td></tr>`;
-            }
+            for(let n in r) rBody.innerHTML += `<tr><td>${n}</td><td>+${r[n].m}</td><td>-${r[n].k}</td><td><b>${r[n].m-r[n].k}</b></td></tr>`;
         });
     }
 
     function eksporExcel() {
         const bln = document.getElementById('filterBulan').value;
-        let csv = `Rekap Laporan Bulan: ${bln}\nNama Barang,Masuk,Keluar,Sisa\n`;
-        const rows = document.querySelectorAll('#rekapBody tr');
-        rows.forEach(r => {
-            const cols = r.querySelectorAll('td');
-            if(cols.length > 1) csv += `${cols[0].innerText},${cols[1].innerText},${cols[2].innerText},${cols[3].innerText}\n`;
+        let csv = `Rekap ${bln}\nNama,Masuk,Keluar,Sisa\n`;
+        document.querySelectorAll('#rekapBody tr').forEach(r => {
+            const c = r.querySelectorAll('td');
+            if(c.length > 1) csv += `${c[0].innerText},${c[1].innerText},${c[2].innerText},${c[3].innerText}\n`;
         });
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -284,8 +263,8 @@
     }
 
     function tutupBuku() {
-        if(confirm("Download backup dan HAPUS semua data di cloud?")) {
-            let csv = "BACKUP GLOBAL\nWaktu,Barang,Tipe,Qty\n";
+        if(confirm("Download backup & hapus data cloud?")) {
+            let csv = "Waktu,Barang,Tipe,Qty\n";
             dbRef.once('value', (snap) => {
                 const data = snap.val();
                 if(data) {
@@ -293,16 +272,16 @@
                     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement("a");
                     link.href = URL.createObjectURL(blob);
-                    link.download = `BACKUP_GUDANG.csv`;
+                    link.download = `BACKUP.csv`;
                     link.click();
-                    setTimeout(() => { dbRef.remove(); alert("Cloud Dikosongkan!"); }, 1000);
+                    setTimeout(() => { dbRef.remove(); alert("Selesai!"); }, 1000);
                 }
             });
         }
     }
 
     function hapus(id) {
-        if(confirm("Hapus data ini?")) firebase.database().ref('stok_global/' + id).remove();
+        if(confirm("Hapus?")) firebase.database().ref('stok_global/' + id).remove();
     }
 </script>
 </body>
