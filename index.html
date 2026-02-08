@@ -116,7 +116,7 @@
     <div id="c3" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
             <h4 style="margin:0;">📜 Riwayat Transaksi</h4>
-            <button onclick="tutupBuku()" style="background: #4b5563; font-size: 11px; padding: 5px 10px;">🔒 Tutup Buku</button>
+            <button onclick="tutupBuku()" style="background: #4b5563; font-size: 11px; padding: 5px 10px;">🔒 Tutup Buku (Butuh Password)</button>
         </div>
         <table id="historyTable">
             <thead><tr><th>Waktu</th><th>Barang</th><th>Tipe</th><th>Qty</th><th>Aksi</th></tr></thead>
@@ -141,6 +141,8 @@
 </div>
 
 <script>
+    const PASS_GUDANG = "tika123";
+
     const firebaseConfig = {
         apiKey: "AIzaSyBZXj5bYhzN1jfYO4lY1Tsqps0gRMffWIM",
         authDomain: "stok-barang-ranap-2.firebaseapp.com",
@@ -263,25 +265,35 @@
     }
 
     function tutupBuku() {
-        if(confirm("Download backup & hapus data cloud?")) {
-            let csv = "Waktu,Barang,Tipe,Qty\n";
-            dbRef.once('value', (snap) => {
-                const data = snap.val();
-                if(data) {
-                    Object.values(data).forEach(i => { csv += `${i.waktu},${i.nama},${i.tipe},${i.qty}\n`; });
-                    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement("a");
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `BACKUP.csv`;
-                    link.click();
-                    setTimeout(() => { dbRef.remove(); alert("Selesai!"); }, 1000);
-                }
-            });
+        const pass = prompt("Masukkan Password Keamanan:");
+        if (pass === PASS_GUDANG) {
+            if(confirm("Download backup & hapus data cloud? Tindakan ini tidak bisa dibatalkan.")) {
+                let csv = "Waktu,Barang,Tipe,Qty\n";
+                dbRef.once('value', (snap) => {
+                    const data = snap.val();
+                    if(data) {
+                        Object.values(data).forEach(i => { csv += `${i.waktu},${i.nama},${i.tipe},${i.qty}\n`; });
+                        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement("a");
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `BACKUP_${new Date().toLocaleDateString()}.csv`;
+                        link.click();
+                        setTimeout(() => { dbRef.remove(); alert("Cloud Berhasil Dikosongkan!"); }, 1000);
+                    }
+                });
+            }
+        } else if (pass !== null) {
+            alert("Password Salah!");
         }
     }
 
     function hapus(id) {
-        if(confirm("Hapus?")) firebase.database().ref('stok_global/' + id).remove();
+        const pass = prompt("Masukkan Password untuk menghapus transaksi:");
+        if (pass === PASS_GUDANG) {
+            if(confirm("Hapus data ini?")) firebase.database().ref('stok_global/' + id).remove();
+        } else if (pass !== null) {
+            alert("Password Salah!");
+        }
     }
 </script>
 </body>
