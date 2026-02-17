@@ -106,7 +106,7 @@
     </div>
 
     <div id="c2" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
-        <h4>📊 Kondisi Stok Saat Ini</h4>
+        <h4>📊 Kondisi Stok Saat Ini (Total Akumulasi)</h4>
         <table id="stokTable">
             <thead><tr><th>Nama Barang</th><th>Total Masuk</th><th>Total Keluar</th><th>Sisa Stok</th></tr></thead>
             <tbody id="stokBody"></tbody>
@@ -115,7 +115,7 @@
 
     <div id="c3" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-            <h4 style="margin:0;">📜 Riwayat Transaksi</h4>
+            <h4 style="margin:0;">📜 Riwayat (100 Terakhir)</h4>
             <button onclick="tutupBuku()" style="background: #4b5563; font-size: 11px; padding: 5px 10px;">🔒 Tutup Buku (Butuh Password)</button>
         </div>
         <table id="historyTable">
@@ -142,7 +142,6 @@
 
 <script>
     const PASS_GUDANG = "tika123";
-
     const firebaseConfig = {
         apiKey: "AIzaSyBZXj5bYhzN1jfYO4lY1Tsqps0gRMffWIM",
         authDomain: "stok-barang-ranap-2.firebaseapp.com",
@@ -173,13 +172,12 @@
         document.getElementById('divK').classList.toggle('hidden', tipe === 'MASUK');
     }
 
-    let globalData = [];
-    dbRef.limitToLast(100).on('value', (snap) => {
+    // LISTENER UTAMA: Mengambil SEMUA data untuk stok yang akurat
+    dbRef.on('value', (snap) => {
         document.getElementById('netStatus').innerText = "● Server Terhubung";
         document.getElementById('netStatus').style.color = "#16a34a";
-        const val = snap.val();
-        globalData = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
-        renderAll();
+        const allData = snap.val() ? Object.keys(snap.val()).map(k => ({...snap.val()[k], id: k})) : [];
+        renderStokDanRiwayat(allData);
     });
 
     function simpanKeCloud() {
@@ -202,24 +200,16 @@
         });
     }
 
-    function renderAll() {
+    function renderStokDanRiwayat(data) {
         const sBody = document.getElementById('stokBody');
         const hBody = document.getElementById('historyBody');
         const selK = document.getElementById('namaK');
         sBody.innerHTML = ''; hBody.innerHTML = ''; selK.innerHTML = '<option value="" disabled selected>-- Pilih Barang --</option>';
         
         const ringkasan = {};
-        const dataUrut = [...globalData].reverse();
-
-        dataUrut.forEach(i => {
-            hBody.innerHTML += `<tr>
-                <td>${i.waktu}</td>
-                <td>${i.nama}</td>
-                <td><span class="badge ${i.tipe.toLowerCase()}">${i.tipe}</span></td>
-                <td>${i.qty}</td>
-                <td><button onclick="hapus('${i.id}')" style="background:red; padding:3px 8px;">Hapus</button></td>
-            </tr>`;
-            
+        
+        // Perhitungan stok menyeluruh
+        data.forEach(i => {
             if(!ringkasan[i.nama]) ringkasan[i.nama] = {m:0, k:0};
             if(i.tipe === 'MASUK') ringkasan[i.nama].m += i.qty;
             else ringkasan[i.nama].k += i.qty;
@@ -230,6 +220,18 @@
             sBody.innerHTML += `<tr><td>${n}</td><td>${ringkasan[n].m}</td><td>${ringkasan[n].k}</td><td><b style="color:${sisa<=5?'red':'black'}">${sisa}</b></td></tr>`;
             if(sisa > 0) selK.innerHTML += `<option value="${n}">${n} (Stok: ${sisa})</option>`;
         }
+
+        // Tampilkan 100 riwayat transaksi terakhir
+        const dataRiwayat = [...data].reverse().slice(0, 100);
+        dataRiwayat.forEach(i => {
+            hBody.innerHTML += `<tr>
+                <td>${i.waktu}</td>
+                <td>${i.nama}</td>
+                <td><span class="badge ${i.tipe.toLowerCase()}">${i.tipe}</span></td>
+                <td>${i.qty}</td>
+                <td><button onclick="hapus('${i.id}')" style="background:red; padding:3px 8px;">Hapus</button></td>
+            </tr>`;
+        });
     }
 
     function renderRekap() {
@@ -246,7 +248,7 @@
                 if(!r[i.nama]) r[i.nama] = {m:0, k:0};
                 if(i.tipe === 'MASUK') r[i.nama].m += i.qty; else r[i.nama].k += i.qty;
             });
-            for(let n in r) rBody.innerHTML += `<tr><td>${n}</td><td>+${r[n].m}</td><td>-${r[n].k}</td><td><b>${r[n].m-r[n].k}</b></td></tr>`;
+            for(let n in r) rBody.innerHTML += `<tr><td>${n}</td><td style="color:green">+${r[n].m}</td><td style="color:red">-${r[n].k}</td><td><b>${r[n].m-r[n].k}</b></td></tr>`;
         });
     }
 
@@ -267,7 +269,7 @@
     function tutupBuku() {
         const pass = prompt("Masukkan Password Keamanan:");
         if (pass === PASS_GUDANG) {
-            if(confirm("Download backup & hapus data cloud? Tindakan ini tidak bisa dibatalkan.")) {
+            if(confirm("Download backup & hapus data cloud?")) {
                 let csv = "Waktu,Barang,Tipe,Qty\n";
                 dbRef.once('value', (snap) => {
                     const data = snap.val();
@@ -276,24 +278,20 @@
                         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
                         const link = document.createElement("a");
                         link.href = URL.createObjectURL(blob);
-                        link.download = `BACKUP_${new Date().toLocaleDateString()}.csv`;
+                        link.download = `CADANGAN_FULL.csv`;
                         link.click();
                         setTimeout(() => { dbRef.remove(); alert("Cloud Berhasil Dikosongkan!"); }, 1000);
                     }
                 });
             }
-        } else if (pass !== null) {
-            alert("Password Salah!");
-        }
+        } else if (pass !== null) { alert("Password Salah!"); }
     }
 
     function hapus(id) {
-        const pass = prompt("Masukkan Password untuk menghapus transaksi:");
+        const pass = prompt("Masukkan Password:");
         if (pass === PASS_GUDANG) {
             if(confirm("Hapus data ini?")) firebase.database().ref('stok_global/' + id).remove();
-        } else if (pass !== null) {
-            alert("Password Salah!");
-        }
+        } else if (pass !== null) { alert("Password Salah!"); }
     }
 </script>
 </body>
