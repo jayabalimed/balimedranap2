@@ -63,7 +63,7 @@
                     <option value="BACTIGRAS">Bactigras</option>
                     <option value="HYPAFIX">Hypafix</option>
                     <option value="JELLY">Jelly</option>
-                    <option value="TISU HALUS">Tisu Halus</option>
+                    <option value="LEUKOPLAST">Leukoplast</option> <option value="TISU HALUS">Tisu Halus</option>
                     <option value="TISU KASAR">Tisu Kasar</option>
                     <option value="KLIP OBAT">Klip Obat</option>
                     <option value="HANDSCOON S">Handscoon S</option>
@@ -172,7 +172,6 @@
         document.getElementById('divK').classList.toggle('hidden', tipe === 'MASUK');
     }
 
-    // LISTENER UTAMA: Mengambil SEMUA data untuk stok yang akurat
     dbRef.on('value', (snap) => {
         document.getElementById('netStatus').innerText = "● Server Terhubung";
         document.getElementById('netStatus').style.color = "#16a34a";
@@ -208,7 +207,6 @@
         
         const ringkasan = {};
         
-        // Perhitungan stok menyeluruh
         data.forEach(i => {
             if(!ringkasan[i.nama]) ringkasan[i.nama] = {m:0, k:0};
             if(i.tipe === 'MASUK') ringkasan[i.nama].m += i.qty;
@@ -221,7 +219,6 @@
             if(sisa > 0) selK.innerHTML += `<option value="${n}">${n} (Stok: ${sisa})</option>`;
         }
 
-        // Tampilkan 100 riwayat transaksi terakhir
         const dataRiwayat = [...data].reverse().slice(0, 100);
         dataRiwayat.forEach(i => {
             hBody.innerHTML += `<tr>
