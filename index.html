@@ -10,13 +10,13 @@
     <style>
         :root { --p: #2563eb; --s: #16a34a; --d: #dc2626; --bg: #f8fafc; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .box { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .box { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .section { background: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
         .grid { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; }
         .field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 180px; }
         input, select, button { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
         button { cursor: pointer; background: var(--p); color: white; border: none; font-weight: bold; }
-        .tab-btn { padding: 10px 15px; border: none; background: #cbd5e1; cursor: pointer; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: bold; }
+        .tab-btn { padding: 10px 12px; border: none; background: #cbd5e1; cursor: pointer; border-radius: 8px 8px 0 0; font-size: 12px; font-weight: bold; margin-right: 2px; }
         .tab-btn.active { background: var(--p); color: white; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 14px; }
         th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
@@ -35,11 +35,12 @@
         <span id="netStatus" style="font-size:12px; color:orange;">Connecting...</span>
     </div>
 
-    <div style="display: flex; gap: 2px;">
-        <button id="t1" class="tab-btn active" onclick="switchTab(1)">📝 Input Barang</button>
+    <div style="display: flex; flex-wrap: wrap;">
+        <button id="t1" class="tab-btn active" onclick="switchTab(1)">📝 Input</button>
         <button id="t2" class="tab-btn" onclick="switchTab(2)">📊 Sisa Stok</button>
-        <button id="t3" class="tab-btn" onclick="switchTab(3)">📜 Riwayat</button>
-        <button id="t4" class="tab-btn" onclick="switchTab(4)">🗓️ Rekap</button>
+        <button id="t5" class="tab-btn" onclick="switchTab(5)">📅 Riwayat Harian</button>
+        <button id="t3" class="tab-btn" onclick="switchTab(3)">📜 100 Transaksi</button>
+        <button id="t4" class="tab-btn" onclick="switchTab(4)">🗓️ Rekap Bulan</button>
     </div>
 
     <div id="c1" class="section" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
@@ -63,7 +64,8 @@
                     <option value="BACTIGRAS">Bactigras</option>
                     <option value="HYPAFIX">Hypafix</option>
                     <option value="JELLY">Jelly</option>
-                    <option value="LEUKOPLAST">Leukoplast</option> <option value="TISU HALUS">Tisu Halus</option>
+                    <option value="LEUKOPLAST">Leukoplast</option>
+                    <option value="TISU HALUS">Tisu Halus</option>
                     <option value="TISU KASAR">Tisu Kasar</option>
                     <option value="KLIP OBAT">Klip Obat</option>
                     <option value="HANDSCOON S">Handscoon S</option>
@@ -97,7 +99,7 @@
             </div>
             
             <div class="field">
-                <label>Jumlah (Quantity)</label>
+                <label>Jumlah</label>
                 <input type="number" id="qty" placeholder="0">
             </div>
             
@@ -106,19 +108,33 @@
     </div>
 
     <div id="c2" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
-        <h4>📊 Kondisi Stok Saat Ini (Total Akumulasi)</h4>
+        <h4>📊 Kondisi Stok Saat Ini</h4>
         <table id="stokTable">
             <thead><tr><th>Nama Barang</th><th>Total Masuk</th><th>Total Keluar</th><th>Sisa Stok</th></tr></thead>
             <tbody id="stokBody"></tbody>
         </table>
     </div>
 
+    <div id="c5" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
+        <h4>📅 Riwayat Transaksi Per Hari</h4>
+        <div class="grid" style="margin-bottom:15px;">
+            <div class="field">
+                <label>Pilih Tanggal</label>
+                <input type="date" id="filterTanggal" onchange="renderRiwayatHarian()">
+            </div>
+        </div>
+        <table id="dailyTable">
+            <thead><tr><th>Waktu</th><th>Nama Barang</th><th>Tipe</th><th>Qty</th><th>Aksi</th></tr></thead>
+            <tbody id="dailyBody"></tbody>
+        </table>
+    </div>
+
     <div id="c3" class="section hidden" style="border-radius:0 8px 8px 8px; border-top:2px solid var(--p);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-            <h4 style="margin:0;">📜 Riwayat (100 Terakhir)</h4>
-            <button onclick="tutupBuku()" style="background: #4b5563; font-size: 11px; padding: 5px 10px;">🔒 Tutup Buku (Butuh Password)</button>
+            <h4 style="margin:0;">📜 100 Transaksi Terakhir</h4>
+            <button onclick="tutupBuku()" style="background: #4b5563; font-size: 11px; padding: 5px 10px;">🔒 Tutup Buku</button>
         </div>
-        <table id="historyTable">
+        <table>
             <thead><tr><th>Waktu</th><th>Barang</th><th>Tipe</th><th>Qty</th><th>Aksi</th></tr></thead>
             <tbody id="historyBody"></tbody>
         </table>
@@ -155,15 +171,22 @@
 
     firebase.initializeApp(firebaseConfig);
     const dbRef = firebase.database().ref('stok_global');
+    let allDataGlobal = [];
 
     function switchTab(n) {
-        for(let i=1; i<=4; i++) {
-            document.getElementById('c'+i).classList.add('hidden');
-            document.getElementById('t'+i).classList.remove('active');
-        }
+        [1,2,3,4,5].forEach(i => {
+            const c = document.getElementById('c'+i);
+            const t = document.getElementById('t'+i);
+            if(c) c.classList.add('hidden');
+            if(t) t.classList.remove('active');
+        });
         document.getElementById('c' + n).classList.remove('hidden');
         document.getElementById('t' + n).classList.add('active');
         if(n === 4) renderRekap();
+        if(n === 5) {
+            document.getElementById('filterTanggal').valueAsDate = new Date();
+            renderRiwayatHarian();
+        }
     }
 
     function toggleInput() {
@@ -173,10 +196,15 @@
     }
 
     dbRef.on('value', (snap) => {
-        document.getElementById('netStatus').innerText = "● Server Terhubung";
+        document.getElementById('netStatus').innerText = "● Online";
         document.getElementById('netStatus').style.color = "#16a34a";
-        const allData = snap.val() ? Object.keys(snap.val()).map(k => ({...snap.val()[k], id: k})) : [];
-        renderStokDanRiwayat(allData);
+        allDataGlobal = snap.val() ? Object.keys(snap.val()).map(k => ({
+            ...snap.val()[k], 
+            id: k,
+            // Buat field tanggal murni YYYY-MM-DD untuk filter harian
+            tanggalMurni: snap.val()[k].waktu.split(',')[0].split('/').reverse().join('-') 
+        })) : [];
+        renderSemua();
     });
 
     function simpanKeCloud() {
@@ -184,14 +212,16 @@
         const qty = parseInt(document.getElementById('qty').value);
         let nama = (tipe === 'MASUK') ? document.getElementById('namaM').value : document.getElementById('namaK').value;
 
-        if(!nama || isNaN(qty) || qty <= 0) return alert("Lengkapi data!");
+        if(!nama || isNaN(qty) || qty <= 0) return alert("Data tidak valid!");
         
         const now = new Date();
+        const waktuStr = now.toLocaleDateString('id-ID') + ', ' + now.toLocaleTimeString('id-ID');
+        
         dbRef.push({
             nama: nama,
             tipe: tipe,
             qty: qty,
-            waktu: now.toLocaleString('id-ID'),
+            waktu: waktuStr,
             bulan: now.toISOString().substring(0, 7)
         }).then(() => {
             alert("Berhasil!");
@@ -199,15 +229,15 @@
         });
     }
 
-    function renderStokDanRiwayat(data) {
+    function renderSemua() {
         const sBody = document.getElementById('stokBody');
         const hBody = document.getElementById('historyBody');
         const selK = document.getElementById('namaK');
-        sBody.innerHTML = ''; hBody.innerHTML = ''; selK.innerHTML = '<option value="" disabled selected>-- Pilih Barang --</option>';
+        sBody.innerHTML = ''; hBody.innerHTML = ''; 
+        selK.innerHTML = '<option value="" disabled selected>-- Pilih Barang --</option>';
         
         const ringkasan = {};
-        
-        data.forEach(i => {
+        allDataGlobal.forEach(i => {
             if(!ringkasan[i.nama]) ringkasan[i.nama] = {m:0, k:0};
             if(i.tipe === 'MASUK') ringkasan[i.nama].m += i.qty;
             else ringkasan[i.nama].k += i.qty;
@@ -219,14 +249,41 @@
             if(sisa > 0) selK.innerHTML += `<option value="${n}">${n} (Stok: ${sisa})</option>`;
         }
 
-        const dataRiwayat = [...data].reverse().slice(0, 100);
+        const dataRiwayat = [...allDataGlobal].reverse().slice(0, 100);
         dataRiwayat.forEach(i => {
-            hBody.innerHTML += `<tr>
-                <td>${i.waktu}</td>
+            hBody.innerHTML += `<tr><td>${i.waktu}</td><td>${i.nama}</td><td><span class="badge ${i.tipe.toLowerCase()}">${i.tipe}</span></td><td>${i.qty}</td><td><button onclick="hapus('${i.id}')" style="background:red; padding:3px 8px; font-size:10px;">Hapus</button></td></tr>`;
+        });
+        
+        renderRiwayatHarian();
+    }
+
+    function renderRiwayatHarian() {
+        const tgl = document.getElementById('filterTanggal').value; // Format YYYY-MM-DD
+        const dBody = document.getElementById('dailyBody');
+        if(!dBody) return;
+        dBody.innerHTML = '';
+        
+        // Filter data berdasarkan tanggal yang dipilih
+        const dataHarian = allDataGlobal.filter(i => {
+            // Konversi format dd/mm/yyyy ke yyyy-mm-dd untuk dibandingkan
+            const bagianWaktu = i.waktu.split(',')[0].trim(); // "10/04/2024"
+            const [d, m, y] = bagianWaktu.split('/');
+            const tglData = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+            return tglData === tgl;
+        }).reverse();
+
+        if(dataHarian.length === 0) {
+            dBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Tidak ada transaksi pada tanggal ini.</td></tr>';
+            return;
+        }
+
+        dataHarian.forEach(i => {
+            dBody.innerHTML += `<tr>
+                <td>${i.waktu.split(',')[1]}</td>
                 <td>${i.nama}</td>
                 <td><span class="badge ${i.tipe.toLowerCase()}">${i.tipe}</span></td>
                 <td>${i.qty}</td>
-                <td><button onclick="hapus('${i.id}')" style="background:red; padding:3px 8px;">Hapus</button></td>
+                <td><button onclick="hapus('${i.id}')" style="background:red; padding:3px 8px; font-size:10px;">Hapus</button></td>
             </tr>`;
         });
     }
@@ -264,28 +321,23 @@
     }
 
     function tutupBuku() {
-        const pass = prompt("Masukkan Password Keamanan:");
+        const pass = prompt("Password Keamanan:");
         if (pass === PASS_GUDANG) {
-            if(confirm("Download backup & hapus data cloud?")) {
+            if(confirm("Download cadangan & bersihkan database?")) {
                 let csv = "Waktu,Barang,Tipe,Qty\n";
-                dbRef.once('value', (snap) => {
-                    const data = snap.val();
-                    if(data) {
-                        Object.values(data).forEach(i => { csv += `${i.waktu},${i.nama},${i.tipe},${i.qty}\n`; });
-                        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-                        const link = document.createElement("a");
-                        link.href = URL.createObjectURL(blob);
-                        link.download = `CADANGAN_FULL.csv`;
-                        link.click();
-                        setTimeout(() => { dbRef.remove(); alert("Cloud Berhasil Dikosongkan!"); }, 1000);
-                    }
-                });
+                allDataGlobal.forEach(i => { csv += `${i.waktu},${i.nama},${i.tipe},${i.qty}\n`; });
+                const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `BACKUP_GUDANG.csv`;
+                link.click();
+                setTimeout(() => { dbRef.remove(); alert("Data Cloud Dikosongkan!"); }, 1000);
             }
         } else if (pass !== null) { alert("Password Salah!"); }
     }
 
     function hapus(id) {
-        const pass = prompt("Masukkan Password:");
+        const pass = prompt("Password Hapus:");
         if (pass === PASS_GUDANG) {
             if(confirm("Hapus data ini?")) firebase.database().ref('stok_global/' + id).remove();
         } else if (pass !== null) { alert("Password Salah!"); }
